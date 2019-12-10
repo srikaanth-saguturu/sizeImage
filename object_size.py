@@ -16,22 +16,32 @@ import argparse
 import imutils
 import cv2
 import os
-
+import base64
+import json
 
 app = Flask(__name__)
 api = Api(app)
+#app.config["DEBUG"] = true
+#@app.route('/imageSizeApi', methods=['POST'])
 
 class imageSizeApi(Resource):
     
 	def midpoint(ptA, ptB):
 		return ((ptA[0] + ptB[0]) * 0.5, (ptA[1] + ptB[1]) * 0.5)
 
-	def get(self,width):
-		path = r"C:\Users\KottapalliManikanta\Desktop\\"\
-		r"Object-s-Size-measurement-in-an-image-using-openCV4.0-and-imutils-master\images\example.png"
-		#width = request.json['refWidth']
+	def post(self):
+		###path = r"C:\Srikaanth\Container Crush\sizeImage-master\sizeImage-master\images\example.png"
+		#r"Object-s-Size-measurement-in-an-image-using-openCV4.0-and-imutils-master\images\example.png"
+		#width = request.json['width']
+		width = request.form['width']
+		###width = 5
+		imageString = base64.b64decode(request.form['img'])     
+		nparr = np.fromstring(imageString, np.uint8)
+		image = cv2.imdecode(nparr, cv2.IMREAD_ANYCOLOR);
 		#image = cv2.imread(os.path.join(path,"example.png")
-		image = cv2.imread(path) 
+		###image = cv2.imread(path) 
+		json_def = {"responseCode" : "", "responseMessage" : "", "itemDimension" : "", "dimension" : []}
+		counter = 0        
 #Get the parameters via API
 # construct the argument parse and parse the arguments
 #ap = argparse.ArgumentParser()
@@ -137,10 +147,27 @@ class imageSizeApi(Resource):
 	#cv2.imshow("Image", orig)
 	#cv2.waitKey(0)
 	# commenting Mani   
-			print("Length:",dimA,"Width:",dimB)
-			#return {'length': dimA, 'width': dimB}
+			print("Length:",dimA,"Width:",dimB)  
+			counter = counter + 1 
+			if (counter==2):        
+				json_def["itemDimension"] = {"length" : dimA, "width" : dimB}   
+			json_def["dimension"].append({"length" : dimA, "width" : dimB})              
+		#return {'length': dimA, 'width': dimB}
+		if (0<=counter<=1):
+			json_def["responseCode"] = 10  
+			json_def["responseMessage"] = "No Objects detected"
+		elif counter>=3:
+			json_def["responseCode"] = 20 
+			json_def["responseMessage"] = "More than 2 objects detected"
+		else:
+			json_def["responseCode"] = 0 
+			json_def["responseMessage"] = "Successful"
+   
+		print(json_def)
+		#return json.dumps(json_def)
+		return jsonify(json_def)
     
-api.add_resource(imageSizeApi, '/imageSizeApi/<width>') # API Path
+api.add_resource(imageSizeApi, '/imageSizeApi') # API Path
 
 if __name__ == '__main__':
-     app.run(port='5004')
+     app.run(port='5005')
